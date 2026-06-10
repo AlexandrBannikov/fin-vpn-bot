@@ -1,0 +1,40 @@
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+)
+
+main_keyboard = ReplyKeyboardMarkup(
+[KeyboardButton(text="📊 Мои приглашения"), KeyboardButton(text="📈 Статистика")],
+[KeyboardButton(text="ℹ️ Помощь")],    keyboard=[
+        [KeyboardButton(text="🔑 Получить VPN")],
+        [KeyboardButton(text="👤 Мой VPN"), KeyboardButton(text="📱 Скачать приложение")],
+        [KeyboardButton(text="🔗 Реферальная ссылка"), KeyboardButton(text="🎁 Пригласительная ссылка")],
+        [KeyboardButton(text="📊 Мои приглашения"), KeyboardButton(text="ℹ️ Помощь")],
+    ],
+    resize_keyboard=True,
+)
+
+app_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="🍏 iPhone — Happ",
+                url="https://apps.apple.com/app/happ-proxy-utility/id6504287215",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="🤖 Android — Happ",
+                url="https://play.google.com/store/apps/details?id=com.happproxy",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="🤖 Android — 2rayTun",
+                url="https://play.google.com/store/apps/details?id=com.v2raytun.android",
+            )
+        ],
+    ]
+)

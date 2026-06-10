@@ -1,0 +1,29 @@
+# Secrets
+.env
+
+# Database
+*.db
+*.db.backup*
+*.sqlite
+*.sqlite3
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Tests / coverage
+.coverage
+.pytest_cache/
+htmlcov/
+coverage.xml
+
+# Logs
+logs/
+*.log
+
+# Backups / archives
+*.backup*
+*.tar.gz
