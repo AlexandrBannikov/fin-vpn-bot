@@ -45,6 +45,7 @@ async def set_bot_commands(bot: Bot) -> None:
         BotCommand(command="admin_users", description="Пользователи"),
         BotCommand(command="admin_expiring", description="Истекающие подписки"),
         BotCommand(command="admin_health", description="Проверка системы"),
+        BotCommand(command="refresh_menu", description="Обновить меню всем"),
 
         BotCommand(command="extend", description="Продлить подписку"),
         BotCommand(command="disable", description="Отключить пользователя"),
@@ -80,7 +81,7 @@ async def main():
     dp.include_router(register_apps_handlers())
     dp.include_router(register_referral_handlers(bot_repository, user_service, bot))
     dp.include_router(register_invite_handlers(user_service, invite_service, qr_service, menu_service))
-    dp.include_router(register_admin_handlers(bot_repository, xui_repository, invite_repository))
+    dp.include_router(register_admin_handlers(bot_repository, xui_repository, invite_repository, bot))
     dp.include_router(register_help_handlers(menu_service))
 
     await set_bot_commands(bot)

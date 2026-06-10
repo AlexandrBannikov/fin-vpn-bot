@@ -108,6 +108,11 @@ class FakeXuiRepository:
         return True
 
 
+class FakeBot:
+    async def send_message(self, chat_id, text, reply_markup=None):
+        return None
+
+
 class FakeInviteRepository:
     def count_all_invite_links(self):
         return 5
@@ -127,6 +132,7 @@ def test_register_admin_handlers():
         bot_repository=FakeBotRepository(),
         xui_repository=FakeXuiRepository(),
         invite_repository=FakeInviteRepository(),
+        bot=FakeBot(),
     )
 
     assert router is not None

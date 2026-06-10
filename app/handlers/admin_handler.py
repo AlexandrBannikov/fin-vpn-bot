@@ -1,8 +1,8 @@
-from aiogram import Router
+from aiogram import Bot, Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from app.keyboards import main_keyboard
+from app.keyboards import get_keyboard_by_role, main_keyboard
 from app.repositories.bot_repository import BotRepository
 from app.repositories.invite_repository import InviteRepository
 from app.repositories.xui_repository import XuiRepository
@@ -245,10 +245,51 @@ async def admin_stats_handler(
     )
 
 
+def build_refresh_menu_result_text(success_count: int, error_count: int) -> str:
+    """
+    Формирует результат массового обновления меню.
+    """
+    return (
+        "🔄 Обновление меню завершено.\n\n"
+        f"✅ Успешно: {success_count}\n"
+        f"❌ Ошибок: {error_count}"
+    )
+
+
+async def refresh_menu_handler(
+    message: Message,
+    bot_repository: BotRepository,
+    bot: Bot,
+) -> None:
+    """
+    Принудительно отправляет актуальное меню всем пользователям бота.
+    """
+    if not is_admin(bot_repository, message.from_user.id):
+        await message.answer(build_access_denied_text())
+        return
+
+    success_count = 0
+    error_count = 0
+
+    for telegram_id, role in bot_repository.get_all_users():
+        try:
+            await bot.send_message(
+                chat_id=telegram_id,
+                text="🔄 Меню обновлено.",
+                reply_markup=get_keyboard_by_role(role),
+            )
+            success_count += 1
+        except Exception:
+            error_count += 1
+
+    await message.answer(build_refresh_menu_result_text(success_count, error_count))
+
+
 def register_admin_handlers(
     bot_repository: BotRepository,
     xui_repository: XuiRepository,
     invite_repository: InviteRepository,
+    bot: Bot,
 ) -> Router:
     @router.message(Command("admin"))
     async def admin_command(message: Message):
@@ -303,6 +344,13 @@ def register_admin_handlers(
             return
 
         await message.answer(build_admin_expiring_text(bot_repository))
+
+    @router.message(Command("refresh_menu"))
+    async def refresh_menu_command(message: Message):
+        """
+        Принудительно обновляет меню всем пользователям.
+        """
+        await refresh_menu_handler(message, bot_repository, bot)
 
     @router.message(Command("extend"))
     async def extend_subscription_command(message: Message):

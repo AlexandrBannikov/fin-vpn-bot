@@ -101,6 +101,22 @@ class BotRepository:
 
         return row[0]
 
+    def get_all_users(self) -> list[tuple]:
+        """
+        Возвращает всех пользователей бота.
+
+        Используется для служебных рассылок,
+        например для принудительного обновления меню.
+        """
+        with sqlite3.connect(BOT_DB_PATH) as conn:
+            return conn.execute(
+                """
+                SELECT telegram_id, role
+                FROM users
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+
     def save_user(
         self,
         telegram_id: int,
