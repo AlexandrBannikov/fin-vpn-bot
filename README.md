@@ -70,7 +70,7 @@ python subscription_daily_job.py
 
 ```bash
 pip install -r requirements-dev.txt
-pytest
+pytest --cov=app --cov=web --cov=scripts --cov-report=term-missing --cov-fail-under=90
 python -m compileall app bot.py web.py subscription_daily_job.py scripts
 ```
 
