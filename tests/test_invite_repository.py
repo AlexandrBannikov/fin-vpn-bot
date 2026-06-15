@@ -48,6 +48,65 @@ def test_bot_repository_init_db_creates_invite_links_table(tmp_path, monkeypatch
     assert invite["owner_tg_id"] == 123
 
 
+def test_bot_repository_init_db_adds_invite_columns_to_existing_table(
+    tmp_path,
+    monkeypatch,
+):
+    test_db = tmp_path / "test_bot.db"
+
+    with sqlite3.connect(test_db) as conn:
+        conn.execute("""
+            CREATE TABLE users (
+                telegram_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT,
+                vpn_email TEXT,
+                referrer_id INTEGER,
+                created_at INTEGER,
+                subscription_started_at INTEGER,
+                subscription_days INTEGER DEFAULT 30,
+                subscription_status TEXT DEFAULT 'trial',
+                last_warning_at INTEGER,
+                role TEXT DEFAULT 'user'
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE referrals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                referrer_id INTEGER NOT NULL,
+                referred_id INTEGER NOT NULL UNIQUE,
+                created_at INTEGER
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE invite_links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_tg_id INTEGER NOT NULL,
+                vpn_email TEXT NOT NULL,
+                sub_id TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            )
+        """)
+        conn.commit()
+
+    monkeypatch.setattr(
+        bot_repository_module,
+        "BOT_DB_PATH",
+        str(test_db),
+    )
+
+    BotRepository().init_db()
+
+    with sqlite3.connect(test_db) as conn:
+        columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(invite_links)").fetchall()
+        }
+
+    assert "token" in columns
+    assert "used_at" in columns
+
+
 def test_save_and_get_invite_by_token(tmp_path, monkeypatch):
     test_db = tmp_path / "test_bot.db"
     create_invite_links_table(test_db)
