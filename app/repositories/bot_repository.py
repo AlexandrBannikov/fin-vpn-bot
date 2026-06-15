@@ -39,7 +39,20 @@ class BotRepository:
                 )
             """)
 
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS invite_links (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    owner_tg_id INTEGER NOT NULL,
+                    vpn_email TEXT NOT NULL,
+                    sub_id TEXT NOT NULL,
+                    token TEXT NOT NULL UNIQUE,
+                    created_at INTEGER NOT NULL,
+                    used_at INTEGER
+                )
+            """)
+
             self._ensure_user_columns(conn)
+            self._ensure_invite_link_columns(conn)
 
             conn.commit()
 
@@ -66,6 +79,21 @@ class BotRepository:
 
         if "role" not in columns:
             conn.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
+
+    def _ensure_invite_link_columns(self, conn: sqlite3.Connection) -> None:
+        """
+        Добавляет недостающие колонки в invite_links для старых установок.
+        """
+        columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(invite_links)").fetchall()
+        }
+
+        if "token" not in columns:
+            conn.execute("ALTER TABLE invite_links ADD COLUMN token TEXT")
+
+        if "used_at" not in columns:
+            conn.execute("ALTER TABLE invite_links ADD COLUMN used_at INTEGER")
 
     def user_exists(self, telegram_id: int) -> bool:
         """
@@ -536,4 +564,3 @@ class BotRepository:
             conn.commit()
 
         return cursor.rowcount
-

@@ -1,3 +1,4 @@
+import app.services.vpn_service as vpn_service_module
 from app.services.vpn_service import VpnService
 
 
@@ -144,3 +145,38 @@ def test_new_client_creation_is_logged():
     assert "telegram_id=123456" in logger_service.events[0]["message"]
     assert "email=tg_123456" in logger_service.events[0]["message"]
     assert "sub_id=" in logger_service.events[0]["message"]
+
+
+def test_restart_xui_can_be_disabled(monkeypatch):
+    repository = FakeXuiRepository()
+    service = VpnService(repository)
+    calls = []
+
+    monkeypatch.setattr(vpn_service_module, "ENABLE_XUI_RESTART", False)
+    monkeypatch.setattr(
+        vpn_service_module.subprocess,
+        "run",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+
+    service.restart_xui()
+
+    assert calls == []
+
+
+def test_restart_xui_uses_configured_command(monkeypatch):
+    repository = FakeXuiRepository()
+    service = VpnService(repository)
+    calls = []
+
+    monkeypatch.setattr(vpn_service_module, "ENABLE_XUI_RESTART", True)
+    monkeypatch.setattr(vpn_service_module, "XUI_RESTART_COMMAND", ["service", "x-ui", "restart"])
+    monkeypatch.setattr(
+        vpn_service_module.subprocess,
+        "run",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+
+    service.restart_xui()
+
+    assert calls == [((["service", "x-ui", "restart"],), {"check": False})]

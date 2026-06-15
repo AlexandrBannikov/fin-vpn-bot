@@ -3,7 +3,7 @@ import subprocess
 import time
 import uuid
 
-from app.config import SERVER_IP, SUB_PORT
+from app.config import ENABLE_XUI_RESTART, SERVER_IP, SUB_PORT, XUI_RESTART_COMMAND
 from app.repositories.xui_repository import XuiRepository
 from app.services.logger_service import LoggerService
 
@@ -89,5 +89,7 @@ class VpnService:
         }
 
     def restart_xui(self) -> None:
-        subprocess.run(["systemctl", "restart", "x-ui"], check=False)
+        if not ENABLE_XUI_RESTART or not XUI_RESTART_COMMAND:
+            return
 
+        subprocess.run(XUI_RESTART_COMMAND, check=False)

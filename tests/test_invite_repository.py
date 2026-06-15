@@ -1,6 +1,8 @@
 import sqlite3
 
+import app.repositories.bot_repository as bot_repository_module
 import app.repositories.invite_repository as invite_repository_module
+from app.repositories.bot_repository import BotRepository
 from app.repositories.invite_repository import InviteRepository
 
 
@@ -18,6 +20,32 @@ def create_invite_links_table(db_path):
             )
         """)
         conn.commit()
+
+
+def test_bot_repository_init_db_creates_invite_links_table(tmp_path, monkeypatch):
+    test_db = tmp_path / "test_bot.db"
+
+    monkeypatch.setattr(
+        bot_repository_module,
+        "BOT_DB_PATH",
+        str(test_db),
+    )
+    monkeypatch.setattr(
+        invite_repository_module,
+        "BOT_DB_PATH",
+        str(test_db),
+    )
+
+    bot_repository = BotRepository()
+    bot_repository.init_db()
+
+    repository = InviteRepository()
+    repository.save_invite_link(123, "invite_1", "sub-1", "token-1", 111)
+
+    invite = repository.get_by_token("token-1")
+
+    assert invite is not None
+    assert invite["owner_tg_id"] == 123
 
 
 def test_save_and_get_invite_by_token(tmp_path, monkeypatch):

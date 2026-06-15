@@ -2,7 +2,7 @@ import secrets
 import time
 import uuid
 
-from app.config import SERVER_IP
+from app.config import INVITE_WEB_PORT, INVITE_WEB_SCHEME, SERVER_IP
 from app.repositories.invite_repository import InviteRepository
 from app.services.vpn_service import VpnService
 
@@ -41,7 +41,7 @@ class InviteService:
             created_at=self.now_ts(),
         )
 
-        invite_url = f"http://{SERVER_IP}:8081/invite/{token}"
+        invite_url = f"{INVITE_WEB_SCHEME}://{SERVER_IP}:{INVITE_WEB_PORT}/invite/{token}"
 
         return {
             "vpn_email": vpn_email,
@@ -61,4 +61,3 @@ class InviteService:
 
     def count_invite_links(self, owner_tg_id: int) -> int:
         return self.invite_repository.count_invite_links(owner_tg_id)
-
