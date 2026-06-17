@@ -66,6 +66,32 @@ INVITE_WEB_PORT=8081
 python subscription_daily_job.py
 ```
 
+## systemd
+
+Готовые unit-файлы лежат в `deploy/systemd/` и рассчитаны на установку проекта в
+`/opt/fin-vpn-bot`:
+
+- `fin-vpn-bot.service` — Telegram-бот
+- `fin-vpn-web.service` — web endpoint для invite-ссылок
+
+Пример установки:
+
+```bash
+sudo cp deploy/systemd/fin-vpn-bot.service /etc/systemd/system/
+sudo cp deploy/systemd/fin-vpn-web.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now fin-vpn-bot fin-vpn-web
+```
+
+Проверка:
+
+```bash
+sudo systemctl status fin-vpn-bot fin-vpn-web
+journalctl -u fin-vpn-bot -f
+journalctl -u fin-vpn-web -f
+curl http://127.0.0.1:8081/health
+```
+
 ## Проверка
 
 ```bash

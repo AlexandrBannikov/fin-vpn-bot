@@ -1,0 +1,17 @@
+[Unit]
+Description=Fin VPN Telegram bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/fin-vpn-bot
+EnvironmentFile=/opt/fin-vpn-bot/.env
+ExecStart=/opt/fin-vpn-bot/venv/bin/python /opt/fin-vpn-bot/bot.py
+Restart=on-failure
+RestartSec=5
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

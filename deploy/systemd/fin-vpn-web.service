@@ -1,0 +1,17 @@
+[Unit]
+Description=Fin VPN invite web service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/fin-vpn-bot
+EnvironmentFile=/opt/fin-vpn-bot/.env
+ExecStart=/opt/fin-vpn-bot/venv/bin/uvicorn web:app --host 0.0.0.0 --port ${INVITE_WEB_PORT}
+Restart=on-failure
+RestartSec=5
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
