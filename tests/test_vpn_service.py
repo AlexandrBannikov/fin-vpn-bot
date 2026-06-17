@@ -94,6 +94,15 @@ def test_build_sub_url():
     repository = FakeXuiRepository()
     service = FakeVpnServiceWithoutRestart(repository)
 
+    assert service.build_sub_url("abc123") == "http://31.57.93.95:2096/sub/abc123"
+
+
+def test_build_sub_url_uses_configured_scheme(monkeypatch):
+    repository = FakeXuiRepository()
+    service = FakeVpnServiceWithoutRestart(repository)
+
+    monkeypatch.setattr(vpn_service_module, "SUB_SCHEME", "https")
+
     assert service.build_sub_url("abc123") == "https://31.57.93.95:2096/sub/abc123"
 
 

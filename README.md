@@ -122,6 +122,7 @@ python -m compileall app bot.py web.py subscription_daily_job.py scripts
 - `XUI_DB_PATH` — база 3X-UI
 - `INBOUND_ID` — inbound в 3X-UI
 - `SERVER_IP` — IP/домен сервера для subscription URL
+- `SUB_SCHEME` — схема subscription URL: `http` или `https`
 - `SUB_PORT` — порт subscription endpoint 3X-UI
 - `FLOW` — flow клиента, например `xtls-rprx-vision`
 - `ENABLE_XUI_RESTART` — перезапускать ли `x-ui` после создания клиента

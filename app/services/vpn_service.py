@@ -3,7 +3,13 @@ import subprocess
 import time
 import uuid
 
-from app.config import ENABLE_XUI_RESTART, SERVER_IP, SUB_PORT, XUI_RESTART_COMMAND
+from app.config import (
+    ENABLE_XUI_RESTART,
+    SERVER_IP,
+    SUB_PORT,
+    SUB_SCHEME,
+    XUI_RESTART_COMMAND,
+)
 from app.repositories.xui_repository import XuiRepository
 from app.services.logger_service import LoggerService
 
@@ -24,7 +30,7 @@ class VpnService:
         return f"tg_{telegram_id}"
 
     def build_sub_url(self, sub_id: str) -> str:
-        return f"https://{SERVER_IP}:{SUB_PORT}/sub/{sub_id}"
+        return f"{SUB_SCHEME}://{SERVER_IP}:{SUB_PORT}/sub/{sub_id}"
 
     def get_or_create_client(self, telegram_id: int) -> dict:
         email = self.make_email(telegram_id)

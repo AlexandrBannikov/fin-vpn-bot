@@ -39,6 +39,7 @@ BOT_DB_PATH = get_env_str("BOT_DB_PATH", "/opt/fin-vpn-bot/bot.db")
 
 INBOUND_ID = get_env_int("INBOUND_ID", 1)
 SERVER_IP = get_env_str("SERVER_IP", "31.57.93.95")
+SUB_SCHEME = get_env_str("SUB_SCHEME", "http")
 SUB_PORT = get_env_int("SUB_PORT", 2096)
 FLOW = get_env_str("FLOW", "xtls-rprx-vision")
 
