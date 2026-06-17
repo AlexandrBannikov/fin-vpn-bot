@@ -80,14 +80,18 @@ curl http://127.0.0.1:8081/health
 cd /opt/fin-vpn-bot
 sudo cp deploy/systemd/fin-vpn-bot.service /etc/systemd/system/
 sudo cp deploy/systemd/fin-vpn-web.service /etc/systemd/system/
+sudo cp deploy/systemd/fin-vpn-backup.service /etc/systemd/system/
+sudo cp deploy/systemd/fin-vpn-backup.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now fin-vpn-bot fin-vpn-web
+sudo systemctl enable --now fin-vpn-backup.timer
 ```
 
 Проверка статуса:
 
 ```bash
 sudo systemctl status fin-vpn-bot fin-vpn-web
+systemctl list-timers fin-vpn-backup.timer
 curl http://127.0.0.1:8081/health
 curl http://127.0.0.1:8081/health/xui
 ```
@@ -117,20 +121,62 @@ SERVER_IP=vpn.example.com
 INVITE_WEB_PORT=443
 ```
 
-## 7. Обновление проекта
+## 7. Backup и restore
+
+Ручной backup:
+
+```bash
+cd /opt/fin-vpn-bot
+sudo ./scripts/backup_databases.sh
+```
+
+Backup-и сохраняются в `/opt/fin-vpn-bot/backups/<timestamp>/`.
+По умолчанию хранятся 14 дней. Это настраивается в `.env`:
+
+```env
+BACKUP_DIR=/opt/fin-vpn-bot/backups
+RETENTION_DAYS=14
+```
+
+Проверить timer:
+
+```bash
+systemctl list-timers fin-vpn-backup.timer
+journalctl -u fin-vpn-backup.service -n 50
+```
+
+Restore из backup:
+
+```bash
+sudo systemctl stop fin-vpn-bot fin-vpn-web
+sudo cp /opt/fin-vpn-bot/backups/<timestamp>/bot.db /opt/fin-vpn-bot/bot.db
+sudo cp /opt/fin-vpn-bot/backups/<timestamp>/x-ui.db /etc/x-ui/x-ui.db
+sudo chmod 600 /opt/fin-vpn-bot/bot.db /etc/x-ui/x-ui.db
+sudo systemctl restart x-ui
+sudo systemctl start fin-vpn-bot fin-vpn-web
+```
+
+После восстановления проверьте:
+
+```bash
+curl http://127.0.0.1:8081/health
+curl http://127.0.0.1:8081/health/xui
+sudo systemctl status fin-vpn-bot fin-vpn-web
+```
+
+## 8. Обновление проекта
 
 Перед обновлением сделайте backup баз:
 
 ```bash
 sudo systemctl stop fin-vpn-bot fin-vpn-web
-sudo cp /opt/fin-vpn-bot/bot.db /opt/fin-vpn-bot/bot.db.backup.$(date +%Y%m%d-%H%M%S)
-sudo cp /etc/x-ui/x-ui.db /etc/x-ui/x-ui.db.backup.$(date +%Y%m%d-%H%M%S)
+cd /opt/fin-vpn-bot
+sudo ./scripts/backup_databases.sh
 ```
 
 Обновите код и зависимости:
 
 ```bash
-cd /opt/fin-vpn-bot
 sudo git pull
 sudo ./venv/bin/pip install -r requirements.txt
 sudo ./venv/bin/python -m compileall app bot.py web.py subscription_daily_job.py scripts
@@ -144,7 +190,7 @@ sudo systemctl status fin-vpn-bot fin-vpn-web
 curl http://127.0.0.1:8081/health
 ```
 
-## 8. Быстрый rollback
+## 9. Быстрый rollback
 
 Если обновление сломалось:
 

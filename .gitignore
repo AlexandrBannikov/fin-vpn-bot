@@ -28,5 +28,6 @@ logs/
 *.log
 
 # Backups / archives
+backups/
 *.backup*
 *.tar.gz

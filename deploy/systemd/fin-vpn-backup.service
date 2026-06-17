@@ -1,0 +1,10 @@
+[Unit]
+Description=Fin VPN database backup
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/fin-vpn-bot
+EnvironmentFile=/opt/fin-vpn-bot/.env
+ExecStart=/opt/fin-vpn-bot/scripts/backup_databases.sh
+User=root
+Group=root
