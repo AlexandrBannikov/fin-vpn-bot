@@ -1,6 +1,7 @@
 import sqlite3
 
 from app.config import BOT_DB_PATH
+from app.db import connect_sqlite
 
 
 class InviteRepository:
@@ -12,7 +13,7 @@ class InviteRepository:
         token: str,
         created_at: int,
     ) -> None:
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             conn.execute(
                 """
                 INSERT INTO invite_links
@@ -25,7 +26,7 @@ class InviteRepository:
             conn.commit()
 
     def get_by_token(self, token: str):
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             return conn.execute(
                 """
@@ -37,7 +38,7 @@ class InviteRepository:
             ).fetchone()
 
     def mark_as_used(self, token: str, used_at: int) -> None:
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             conn.execute(
                 """
                 UPDATE invite_links
@@ -50,26 +51,26 @@ class InviteRepository:
             conn.commit()
 
     def count_invite_links(self, owner_tg_id: int) -> int:
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM invite_links WHERE owner_tg_id = ?",
                 (owner_tg_id,),
             ).fetchone()[0]
 
     def count_all_invite_links(self) -> int:
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM invite_links"
             ).fetchone()[0]
 
     def count_used_invite_links(self) -> int:
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM invite_links WHERE used_at IS NOT NULL"
             ).fetchone()[0]
 
     def count_unused_invite_links(self) -> int:
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM invite_links WHERE used_at IS NULL"
             ).fetchone()[0]
@@ -80,10 +81,9 @@ class InviteRepository:
 
         Возвращает количество удалённых записей.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             cursor = conn.execute(
                 "DELETE FROM invite_links WHERE used_at IS NOT NULL"
             )
             conn.commit()
             return cursor.rowcount
-

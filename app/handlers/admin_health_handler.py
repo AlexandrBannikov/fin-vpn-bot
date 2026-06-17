@@ -5,6 +5,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from app.config import BOT_DB_PATH, INBOUND_ID, XUI_DB_PATH
+from app.db import connect_sqlite
 from app.handlers.admin_handler import build_access_denied_text, is_admin
 from app.repositories.bot_repository import BotRepository
 from app.repositories.xui_repository import XuiRepository
@@ -17,7 +18,7 @@ def can_open_sqlite_database(db_path: str) -> bool:
     Проверяет, что SQLite-база доступна для открытия.
     """
     try:
-        with sqlite3.connect(db_path) as conn:
+        with connect_sqlite(db_path) as conn:
             conn.execute("SELECT 1")
         return True
     except sqlite3.Error:
@@ -89,4 +90,3 @@ def register_admin_health_handlers(
         )
 
     return router
-

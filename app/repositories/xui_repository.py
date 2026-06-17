@@ -2,11 +2,12 @@ import json
 import sqlite3
 
 from app.config import FLOW, INBOUND_ID, XUI_DB_PATH
+from app.db import connect_sqlite
 
 
 class XuiRepository:
     def get_client_by_email(self, email: str):
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             return conn.execute(
                 "SELECT * FROM clients WHERE email = ?",
@@ -23,7 +24,7 @@ class XuiRepository:
         telegram_id: int,
         created_at: int,
     ) -> int:
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             cursor = conn.execute(
                 """
                 INSERT INTO clients
@@ -39,7 +40,7 @@ class XuiRepository:
             return cursor.lastrowid
 
     def bind_client_to_inbound(self, client_id: int, created_at: int) -> None:
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             conn.execute(
                 """
                 INSERT OR IGNORE INTO client_inbounds
@@ -52,7 +53,7 @@ class XuiRepository:
             conn.commit()
 
     def create_client_traffic(self, email: str) -> None:
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             conn.execute(
                 """
                 INSERT OR IGNORE INTO client_traffics
@@ -65,7 +66,7 @@ class XuiRepository:
             conn.commit()
 
     def get_client_by_id(self, client_id: int):
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             return conn.execute(
                 "SELECT * FROM clients WHERE id = ?",
@@ -73,7 +74,7 @@ class XuiRepository:
             ).fetchone()
 
     def add_client_to_inbound_settings(self, client_row) -> None:
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
 
@@ -119,7 +120,7 @@ class XuiRepository:
             conn.commit()
 
     def count_clients(self) -> int:
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             return conn.execute("SELECT COUNT(*) FROM clients").fetchone()[0]
 
     def count_bot_clients(self) -> int:
@@ -128,7 +129,7 @@ class XuiRepository:
 
         Это клиенты с email вида tg_123456.
         """
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM clients WHERE email LIKE 'tg_%'"
             ).fetchone()[0]
@@ -139,7 +140,7 @@ class XuiRepository:
 
         Это клиенты с email вида invite_...
         """
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM clients WHERE email LIKE 'invite_%'"
             ).fetchone()[0]
@@ -151,7 +152,7 @@ class XuiRepository:
         Это старые, ручные или тестовые клиенты,
         которые не были созданы ботом как tg_ или invite_.
         """
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             return conn.execute(
                 """
                 SELECT COUNT(*)
@@ -167,7 +168,7 @@ class XuiRepository:
         Нужен для health-check, чтобы понимать:
         база 3X-UI доступна или нет.
         """
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             return conn.execute(
                 "SELECT * FROM inbounds WHERE id = ?",
@@ -180,7 +181,7 @@ class XuiRepository:
 
         В таблице clients Telegram ID хранится в поле tg_id.
         """
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             return conn.execute(
                 "SELECT * FROM clients WHERE tg_id = ?",
@@ -200,7 +201,7 @@ class XuiRepository:
         """
         enabled_value = 1 if is_enabled else 0
 
-        with sqlite3.connect(XUI_DB_PATH) as conn:
+        with connect_sqlite(XUI_DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
             cur = conn.cursor()
 
@@ -261,4 +262,3 @@ class XuiRepository:
             conn.commit()
 
         return True
-

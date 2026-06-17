@@ -2,6 +2,7 @@ import sqlite3
 import time
 
 from app.config import BOT_DB_PATH
+from app.db import connect_sqlite
 
 
 class BotRepository:
@@ -13,7 +14,7 @@ class BotRepository:
         - created_at и subscription_started_at храним в Unix seconds;
         - роли пользователей храним в users.role.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     telegram_id INTEGER PRIMARY KEY,
@@ -99,7 +100,7 @@ class BotRepository:
         """
         Проверяет, есть ли пользователь в базе.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             row = conn.execute(
                 "SELECT telegram_id FROM users WHERE telegram_id = ?",
                 (telegram_id,),
@@ -114,7 +115,7 @@ class BotRepository:
         Если пользователь не найден или роль пустая,
         считаем его обычным пользователем.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             row = conn.execute(
                 """
                 SELECT role
@@ -136,7 +137,7 @@ class BotRepository:
         Используется для служебных рассылок,
         например для принудительного обновления меню.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             return conn.execute(
                 """
                 SELECT telegram_id, role
@@ -163,7 +164,7 @@ class BotRepository:
         - статус trial;
         - роль по умолчанию user.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             conn.execute(
                 """
                 INSERT INTO users
@@ -208,7 +209,7 @@ class BotRepository:
         """
         Считает количество рефералов конкретного пользователя.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             return conn.execute(
                 "SELECT COUNT(*) FROM referrals WHERE referrer_id = ?",
                 (telegram_id,),
@@ -218,14 +219,14 @@ class BotRepository:
         """
         Считает всех пользователей бота.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             return conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
 
     def count_all_referrals(self) -> int:
         """
         Считает всех рефералов.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             return conn.execute("SELECT COUNT(*) FROM referrals").fetchone()[0]
 
     def extend_subscription(self, telegram_id: int, days: int) -> bool:
@@ -236,7 +237,7 @@ class BotRepository:
         - True, если пользователь найден и подписка продлена;
         - False, если пользователя нет.
         """
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             user = conn.execute(
                 """
                 SELECT subscription_days
@@ -280,7 +281,7 @@ class BotRepository:
         """
         now = int(time.time())
 
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             users = conn.execute(
                 """
                 SELECT
@@ -338,7 +339,7 @@ class BotRepository:
         """
         now = int(time.time())
 
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             users = conn.execute(
                 """
                 SELECT
@@ -398,7 +399,7 @@ class BotRepository:
         """
         now = int(time.time())
 
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             users = conn.execute(
                 """
                 SELECT
@@ -458,7 +459,7 @@ class BotRepository:
         if not telegram_ids:
             return 0
 
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             cursor = conn.executemany(
                 """
                 UPDATE users
@@ -484,7 +485,7 @@ class BotRepository:
         now = int(time.time())
         today_start = now - (now % 86400)
 
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             users = conn.execute(
                 """
                 SELECT
@@ -551,7 +552,7 @@ class BotRepository:
 
         now = int(time.time())
 
-        with sqlite3.connect(BOT_DB_PATH) as conn:
+        with connect_sqlite(BOT_DB_PATH) as conn:
             cursor = conn.executemany(
                 """
                 UPDATE users
