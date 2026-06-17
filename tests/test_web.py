@@ -73,6 +73,16 @@ class FakeXuiRepository:
         return 7
 
 
+class MissingInboundXuiRepository(FakeXuiRepository):
+    def get_inbound_by_id(self, inbound_id: int):
+        return None
+
+
+class BrokenXuiRepository(FakeXuiRepository):
+    def get_inbound_by_id(self, inbound_id: int):
+        raise RuntimeError("x-ui is unavailable")
+
+
 def setup_fake_services():
     web.rate_limit_storage.clear()
     web.invite_repository = FakeInviteRepository()
@@ -80,6 +90,7 @@ def setup_fake_services():
     web.vpn_service = FakeVpnService()
     web.xui_repository = FakeXuiRepository()
     web.logger_service = FakeLoggerService()
+    web.check_sqlite_database = lambda db_path: (True, None)
 
 
 def test_root_status_ok():
@@ -102,7 +113,81 @@ def test_health_status_ok():
     assert response.json() == {
         "status": "ok",
         "service": "fin-vpn-web",
+        "checks": {
+            "bot_db": {
+                "status": "ok",
+                "error": None,
+            },
+            "xui_db": {
+                "status": "ok",
+                "error": None,
+            },
+            "xui_inbound": {
+                "status": "ok",
+                "inbound_id": web.INBOUND_ID,
+                "error": None,
+            },
+        },
+        "metrics": {
+            "users": 10,
+            "vpn_clients": 7,
+            "invite_links": 5,
+        },
     }
+
+
+def test_health_status_returns_error_when_xui_db_is_missing():
+    setup_fake_services()
+    web.check_sqlite_database = lambda db_path: (
+        False,
+        "file_not_found",
+    ) if str(db_path) == str(web.XUI_DB_PATH) else (True, None)
+
+    client = TestClient(web.app)
+    response = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json()["status"] == "error"
+    assert response.json()["checks"]["xui_db"] == {
+        "status": "error",
+        "error": "file_not_found",
+    }
+
+
+def test_health_status_returns_error_when_inbound_is_missing():
+    setup_fake_services()
+    web.xui_repository = MissingInboundXuiRepository()
+
+    client = TestClient(web.app)
+    response = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json()["checks"]["xui_inbound"] == {
+        "status": "error",
+        "inbound_id": web.INBOUND_ID,
+        "error": "inbound_not_found",
+    }
+
+
+def test_health_xui_logs_exception_when_repository_fails():
+    setup_fake_services()
+    web.xui_repository = BrokenXuiRepository()
+
+    client = TestClient(web.app)
+    response = client.get("/health/xui")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "error",
+        "xui": "unavailable",
+        "inbound_id": web.INBOUND_ID,
+    }
+    assert web.logger_service.events == [
+        {
+            "event": "HEALTH_XUI_FAILED",
+            "message": f"inbound_id={web.INBOUND_ID}, error=RuntimeError",
+        }
+    ]
 
 
 def test_health_xui_status_ok():

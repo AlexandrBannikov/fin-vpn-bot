@@ -1,9 +1,12 @@
+import sqlite3
 import time
+from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
-from app.config import INBOUND_ID
+from app.config import BOT_DB_PATH, INBOUND_ID, XUI_DB_PATH
+from app.db import connect_sqlite
 from app.repositories.bot_repository import BotRepository
 from app.repositories.invite_repository import InviteRepository
 from app.repositories.xui_repository import XuiRepository
@@ -149,6 +152,68 @@ def render_rate_limit_page() -> HTMLResponse:
     )
 
 
+def check_sqlite_database(db_path: str | Path) -> tuple[bool, str | None]:
+    path = Path(db_path)
+
+    if not path.exists():
+        return False, "file_not_found"
+
+    try:
+        with connect_sqlite(path) as conn:
+            conn.execute("SELECT 1")
+        return True, None
+    except sqlite3.Error as exc:
+        return False, exc.__class__.__name__
+
+
+def build_health_report() -> dict:
+    bot_db_ok, bot_db_error = check_sqlite_database(BOT_DB_PATH)
+    xui_db_ok, xui_db_error = check_sqlite_database(XUI_DB_PATH)
+    inbound_ok = False
+    inbound_error = None
+
+    if xui_db_ok:
+        try:
+            inbound_ok = xui_repository.get_inbound_by_id(INBOUND_ID) is not None
+            if not inbound_ok:
+                inbound_error = "inbound_not_found"
+        except Exception as exc:
+            xui_db_ok = False
+            xui_db_error = exc.__class__.__name__
+            inbound_error = "xui_query_failed"
+
+    status = "ok" if bot_db_ok and xui_db_ok and inbound_ok else "error"
+
+    report = {
+        "status": status,
+        "service": "fin-vpn-web",
+        "checks": {
+            "bot_db": {
+                "status": "ok" if bot_db_ok else "error",
+                "error": bot_db_error,
+            },
+            "xui_db": {
+                "status": "ok" if xui_db_ok else "error",
+                "error": xui_db_error,
+            },
+            "xui_inbound": {
+                "status": "ok" if inbound_ok else "error",
+                "inbound_id": INBOUND_ID,
+                "error": inbound_error,
+            },
+        },
+    }
+
+    if status == "ok":
+        report["metrics"] = {
+            "users": bot_repository.count_users(),
+            "vpn_clients": xui_repository.count_clients(),
+            "invite_links": invite_repository.count_all_invite_links(),
+        }
+
+    return report
+
+
 @app.get("/invite/{token}", response_class=HTMLResponse)
 async def show_invite(token: str, request: Request):
     client_ip = get_client_ip(request)
@@ -259,12 +324,11 @@ async def root():
 @app.get("/health")
 async def health():
     """
-    Простая проверка, что FastAPI-сервис жив.
+    Проверка FastAPI-сервиса и основных зависимостей.
     """
-    return {
-        "status": "ok",
-        "service": "fin-vpn-web",
-    }
+    report = build_health_report()
+    status_code = 200 if report["status"] == "ok" else 503
+    return JSONResponse(report, status_code=status_code)
 
 
 @app.get("/health/xui")
@@ -288,7 +352,11 @@ async def health_xui():
             "inbound_id": INBOUND_ID,
         }
 
-    except Exception:
+    except Exception as exc:
+        logger_service.error(
+            event="HEALTH_XUI_FAILED",
+            message=f"inbound_id={INBOUND_ID}, error={exc.__class__.__name__}",
+        )
         return {
             "status": "error",
             "xui": "unavailable",

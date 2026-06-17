@@ -61,6 +61,7 @@ sudo chmod 600 /opt/fin-vpn-bot/.env
 ```bash
 cd /opt/fin-vpn-bot
 sudo ./venv/bin/python -m compileall app bot.py web.py subscription_daily_job.py scripts
+sudo ./venv/bin/python scripts/migrate.py
 sudo ./venv/bin/python scripts/check_subscriptions.py
 ```
 
@@ -180,6 +181,7 @@ sudo ./scripts/backup_databases.sh
 sudo git pull
 sudo ./venv/bin/pip install -r requirements.txt
 sudo ./venv/bin/python -m compileall app bot.py web.py subscription_daily_job.py scripts
+sudo ./venv/bin/python scripts/migrate.py
 sudo systemctl start fin-vpn-bot fin-vpn-web
 ```
 
@@ -199,6 +201,7 @@ cd /opt/fin-vpn-bot
 sudo git log --oneline -5
 sudo git checkout <previous_commit_sha>
 sudo ./venv/bin/pip install -r requirements.txt
+sudo ./venv/bin/python scripts/migrate.py
 sudo systemctl restart fin-vpn-bot fin-vpn-web
 ```
 

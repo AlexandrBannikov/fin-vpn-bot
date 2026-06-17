@@ -68,6 +68,15 @@ INVITE_WEB_PORT=8081
 python subscription_daily_job.py
 ```
 
+## Миграции БД
+
+Схема `bot.db` обновляется идемпотентными миграциями. Перед ручным запуском или
+после `git pull` можно явно применить миграции:
+
+```bash
+python scripts/migrate.py
+```
+
 ## systemd
 
 Готовые unit-файлы лежат в `deploy/systemd/` и рассчитаны на установку проекта в
@@ -75,6 +84,7 @@ python subscription_daily_job.py
 
 - `fin-vpn-bot.service` — Telegram-бот
 - `fin-vpn-web.service` — web endpoint для invite-ссылок
+- `fin-vpn-backup.timer` — ежедневный backup `bot.db` и `x-ui.db`
 
 Пример установки:
 
