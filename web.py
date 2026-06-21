@@ -249,10 +249,10 @@ async def show_invite(token: str, request: Request):
         "Активация VPN",
         f"""
         <h2>VPN-приглашение</h2>
-        <p>Нажмите кнопку ниже, чтобы получить VPN-подписку.</p>
+        <p>Нажмите кнопку ниже, чтобы получить прямую VPN-ссылку.</p>
 
         <form method="post" action="/invite/{token}/activate">
-            <button class="button" type="submit">Получить VPN-подписку</button>
+            <button class="button" type="submit">Получить VPN-ссылку</button>
         </form>
 
         <p class="muted">
@@ -293,24 +293,35 @@ async def activate_invite(token: str, request: Request):
             """,
         )
 
-    sub_url = vpn_service.build_sub_url(invite["sub_id"])
+    client_row = xui_repository.get_client_by_email(invite["vpn_email"])
+
+    if client_row is None:
+        return render_page(
+            "VPN-ссылка не найдена",
+            """
+            <h2>VPN-ссылка не найдена</h2>
+            <p>Попросите отправить новую пригласительную ссылку.</p>
+            """,
+        )
+
+    vless_url = vpn_service.build_vless_url(client_row)
     invite_repository.mark_as_used(token, now_ts())
     logger_service.info(
         event="INVITE_ACTIVATED",
-        message=f"token={token}, sub_id={invite['sub_id']}",
+        message=f"token={token}, vpn_email={invite['vpn_email']}",
     )
 
     return render_page(
-        "VPN-подписка",
+        "VPN-ссылка",
         f"""
-        <h2>VPN-подписка готова ✅</h2>
-        <p>Скопируйте ссылку ниже и добавьте её в Happ или 2rayTun как подписку.</p>
+        <h2>VPN-ссылка готова ✅</h2>
+        <p>Скопируйте ссылку ниже и добавьте её в Happ или 2rayTun как сервер.</p>
 
-        <div class="link">{sub_url}</div>
+        <div class="link">{vless_url}</div>
 
         <p class="muted">
             Эта пригласительная ссылка уже активирована.
-            При повторном открытии подписка больше не будет показана.
+            При повторном открытии VPN-ссылка больше не будет показана.
         </p>
         """,
     )

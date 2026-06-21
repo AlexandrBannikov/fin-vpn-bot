@@ -38,11 +38,13 @@ class FakeInviteRepository:
             "new-token": {
                 "token": "new-token",
                 "sub_id": "sub-123",
+                "vpn_email": "invite_123",
                 "used_at": None,
             },
             "used-token": {
                 "token": "used-token",
                 "sub_id": "sub-456",
+                "vpn_email": "invite_456",
                 "used_at": 123456789,
             },
         }
@@ -61,8 +63,18 @@ class FakeVpnService:
     def build_sub_url(self, sub_id: str) -> str:
         return f"https://example.com/sub/{sub_id}"
 
+    def build_vless_url(self, client_row) -> str:
+        return f"vless://uuid@example.com:443?type=tcp#{client_row['email']}"
+
 
 class FakeXuiRepository:
+    def get_client_by_email(self, email: str):
+        return {
+            "email": email,
+            "uuid": "uuid",
+            "flow": "xtls-rprx-vision",
+        }
+
     def get_inbound_by_id(self, inbound_id: int):
         return {
             "id": inbound_id,
@@ -227,7 +239,7 @@ def test_invite_page_shows_activation_button():
 
     assert response.status_code == 200
     assert "VPN-приглашение" in response.text
-    assert "Получить VPN-подписку" in response.text
+    assert "Получить VPN-ссылку" in response.text
 
 
 def test_unknown_invite_token():
@@ -250,20 +262,21 @@ def test_used_invite_token():
     assert "Эта ссылка уже используется" in response.text
 
 
-def test_activate_invite_shows_subscription_and_marks_used():
+def test_activate_invite_shows_direct_vless_link_and_marks_used():
     setup_fake_services()
 
     client = TestClient(web.app)
     response = client.post("/invite/new-token/activate")
 
     assert response.status_code == 200
-    assert "VPN-подписка готова" in response.text
-    assert "https://example.com/sub/sub-123" in response.text
+    assert "VPN-ссылка готова" in response.text
+    assert "vless://uuid@example.com:443?type=tcp#invite_123" in response.text
+    assert "https://example.com/sub/sub-123" not in response.text
     assert web.invite_repository.invites["new-token"]["used_at"] is not None
     assert web.logger_service.events == [
         {
             "event": "INVITE_ACTIVATED",
-            "message": "token=new-token, sub_id=sub-123",
+            "message": "token=new-token, vpn_email=invite_123",
         }
     ]
 
@@ -276,7 +289,7 @@ def test_activate_invite_second_time_is_blocked():
     first_response = client.post("/invite/new-token/activate")
     second_response = client.post("/invite/new-token/activate")
 
-    assert "VPN-подписка готова" in first_response.text
+    assert "VPN-ссылка готова" in first_response.text
     assert "Эта ссылка уже используется" in second_response.text
 
 
