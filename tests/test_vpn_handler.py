@@ -100,7 +100,7 @@ async def test_send_vpn_sends_subscription_and_qr():
     assert len(message.answers) == 1
     assert "✅ VPN создан." in message.answers[0]["text"]
     assert "vless://uuid@vpn.example.com:443?type=tcp#tg_228333796" in message.answers[0]["text"]
-    assert "https://vpn.example.com/sub/test-sub-id" in message.answers[0]["text"]
+    assert "https://vpn.example.com/sub/test-sub-id" not in message.answers[0]["text"]
     assert message.answers[0]["reply_markup"] == "fake-keyboard"
 
     assert len(message.photos) == 1
@@ -113,16 +113,15 @@ def test_build_vpn_text_for_new_client():
     Проверяем текст для нового VPN-клиента.
     """
     text = build_vpn_text(
-        sub_url="https://vpn.example.com/sub/test-sub-id",
         vless_url="vless://uuid@vpn.example.com:443?type=tcp#tg_228333796",
         is_created=True,
     )
 
     assert "✅ VPN создан." in text
     assert "vless://uuid@vpn.example.com:443?type=tcp#tg_228333796" in text
-    assert "https://vpn.example.com/sub/test-sub-id" in text
     assert "Добавьте прямую VPN-ссылку или QR-код" in text
-    assert "можно добавить ссылку подписки" in text
+    assert "Подключитесь к добавленному серверу" in text
+    assert "/sub/" not in text
 
 
 def test_build_vpn_text_for_existing_client():
@@ -130,14 +129,13 @@ def test_build_vpn_text_for_existing_client():
     Проверяем текст для уже существующего VPN-клиента.
     """
     text = build_vpn_text(
-        sub_url="https://vpn.example.com/sub/test-sub-id",
         vless_url="vless://uuid@vpn.example.com:443?type=tcp#tg_228333796",
         is_created=False,
     )
 
     assert "✅ VPN уже создан." in text
     assert "vless://uuid@vpn.example.com:443?type=tcp#tg_228333796" in text
-    assert "https://vpn.example.com/sub/test-sub-id" in text
+    assert "/sub/" not in text
 
 
 def test_build_vpn_qr_caption_returns_caption():
