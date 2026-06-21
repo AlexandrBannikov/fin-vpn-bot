@@ -47,6 +47,7 @@ class FakeVpnService:
     def get_or_create_client(self, telegram_id: int) -> dict:
         return {
             "sub_id": "test-sub-id",
+            "vless_url": "vless://uuid@vpn.example.com:443?type=tcp#tg_228333796",
             "created": True,
         }
 
@@ -98,12 +99,13 @@ async def test_send_vpn_sends_subscription_and_qr():
 
     assert len(message.answers) == 1
     assert "✅ VPN создан." in message.answers[0]["text"]
+    assert "vless://uuid@vpn.example.com:443?type=tcp#tg_228333796" in message.answers[0]["text"]
     assert "https://vpn.example.com/sub/test-sub-id" in message.answers[0]["text"]
     assert message.answers[0]["reply_markup"] == "fake-keyboard"
 
     assert len(message.photos) == 1
     assert message.photos[0]["photo"] == b"fake-qr"
-    assert message.photos[0]["caption"] == "QR-код подписки"
+    assert message.photos[0]["caption"] == "QR-код прямой VPN-ссылки"
 
 
 def test_build_vpn_text_for_new_client():
@@ -112,13 +114,15 @@ def test_build_vpn_text_for_new_client():
     """
     text = build_vpn_text(
         sub_url="https://vpn.example.com/sub/test-sub-id",
+        vless_url="vless://uuid@vpn.example.com:443?type=tcp#tg_228333796",
         is_created=True,
     )
 
     assert "✅ VPN создан." in text
+    assert "vless://uuid@vpn.example.com:443?type=tcp#tg_228333796" in text
     assert "https://vpn.example.com/sub/test-sub-id" in text
-    assert "Добавьте подписку по ссылке или QR-коду" in text
-    assert "Обновите подписку в приложении" in text
+    assert "Добавьте прямую VPN-ссылку или QR-код" in text
+    assert "можно добавить ссылку подписки" in text
 
 
 def test_build_vpn_text_for_existing_client():
@@ -127,10 +131,12 @@ def test_build_vpn_text_for_existing_client():
     """
     text = build_vpn_text(
         sub_url="https://vpn.example.com/sub/test-sub-id",
+        vless_url="vless://uuid@vpn.example.com:443?type=tcp#tg_228333796",
         is_created=False,
     )
 
     assert "✅ VPN уже создан." in text
+    assert "vless://uuid@vpn.example.com:443?type=tcp#tg_228333796" in text
     assert "https://vpn.example.com/sub/test-sub-id" in text
 
 
@@ -138,4 +144,4 @@ def test_build_vpn_qr_caption_returns_caption():
     """
     Проверяем подпись QR-кода VPN-подписки.
     """
-    assert build_vpn_qr_caption() == "QR-код подписки"
+    assert build_vpn_qr_caption() == "QR-код прямой VPN-ссылки"

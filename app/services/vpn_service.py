@@ -1,10 +1,14 @@
+import json
 import secrets
 import subprocess
 import time
 import uuid
+from urllib.parse import urlencode, quote
 
 from app.config import (
     ENABLE_XUI_RESTART,
+    FLOW,
+    INBOUND_ID,
     SERVER_IP,
     SUB_PORT,
     SUB_SCHEME,
@@ -32,6 +36,128 @@ class VpnService:
     def build_sub_url(self, sub_id: str) -> str:
         return f"{SUB_SCHEME}://{SERVER_IP}:{SUB_PORT}/sub/{sub_id}"
 
+    def build_vless_url(self, client_row) -> str:
+        inbound = self.xui_repository.get_inbound_by_id(INBOUND_ID)
+        stream_settings = self.parse_json_field(inbound, "stream_settings")
+
+        network = stream_settings.get("network", "tcp")
+        security = stream_settings.get("security", "none")
+        flow = self.row_value(client_row, "flow") or FLOW
+        query = {
+            "type": network,
+            "security": security,
+            "encryption": "none",
+        }
+
+        if flow:
+            query["flow"] = flow
+
+        self.add_transport_params(query, stream_settings, network)
+        self.add_security_params(query, stream_settings, security)
+
+        return (
+            f"vless://{self.row_value(client_row, 'uuid')}@"
+            f"{SERVER_IP}:{self.row_value(inbound, 'port')}"
+            f"?{urlencode(query)}"
+            f"#{quote(self.row_value(client_row, 'email'))}"
+        )
+
+    def parse_json_field(self, row, field_name: str) -> dict:
+        raw_value = self.row_value(row, field_name)
+
+        if not raw_value:
+            return {}
+
+        try:
+            return json.loads(raw_value)
+        except json.JSONDecodeError:
+            return {}
+
+    def row_value(self, row, field_name: str):
+        try:
+            return row[field_name]
+        except (IndexError, KeyError, TypeError):
+            return None
+
+    def add_transport_params(
+        self,
+        query: dict[str, str],
+        stream_settings: dict,
+        network: str,
+    ) -> None:
+        if network == "tcp":
+            tcp_settings = stream_settings.get("tcpSettings", {})
+            header = tcp_settings.get("header", {})
+            header_type = header.get("type")
+
+            if header_type:
+                query["headerType"] = header_type
+
+        if network == "ws":
+            ws_settings = stream_settings.get("wsSettings", {})
+            path = ws_settings.get("path")
+            host = ws_settings.get("headers", {}).get("Host")
+
+            if path:
+                query["path"] = path
+            if host:
+                query["host"] = host
+
+        if network == "grpc":
+            grpc_settings = stream_settings.get("grpcSettings", {})
+            service_name = grpc_settings.get("serviceName")
+
+            if service_name:
+                query["serviceName"] = service_name
+
+    def add_security_params(
+        self,
+        query: dict[str, str],
+        stream_settings: dict,
+        security: str,
+    ) -> None:
+        if security == "reality":
+            reality_settings = stream_settings.get("realitySettings", {})
+            client_settings = reality_settings.get("settings", {})
+            public_key = client_settings.get("publicKey")
+            fingerprint = client_settings.get("fingerprint")
+            server_name = (
+                client_settings.get("serverName")
+                or self.first_value(reality_settings.get("serverNames"))
+            )
+            short_id = self.first_value(reality_settings.get("shortIds"))
+            spider_x = client_settings.get("spiderX")
+
+            if public_key:
+                query["pbk"] = public_key
+            if fingerprint:
+                query["fp"] = fingerprint
+            if server_name:
+                query["sni"] = server_name
+            if short_id:
+                query["sid"] = short_id
+            if spider_x:
+                query["spx"] = spider_x
+
+        if security == "tls":
+            tls_settings = stream_settings.get("tlsSettings", {})
+            server_name = tls_settings.get("serverName")
+            fingerprint = tls_settings.get("fingerprint")
+
+            if server_name:
+                query["sni"] = server_name
+            if fingerprint:
+                query["fp"] = fingerprint
+
+    def first_value(self, value) -> str | None:
+        if isinstance(value, list) and value:
+            return value[0]
+
+        if isinstance(value, str) and value:
+            return value
+
+        return None
+
     def get_or_create_client(self, telegram_id: int) -> dict:
         email = self.make_email(telegram_id)
         existing = self.xui_repository.get_client_by_email(email)
@@ -41,6 +167,7 @@ class VpnService:
                 "email": existing["email"],
                 "uuid": existing["uuid"],
                 "sub_id": existing["sub_id"],
+                "vless_url": self.build_vless_url(existing),
                 "created": False,
             }
 
@@ -91,6 +218,7 @@ class VpnService:
             "email": email,
             "uuid": client_uuid,
             "sub_id": sub_id,
+            "vless_url": self.build_vless_url(client_row),
             "created": True,
         }
 

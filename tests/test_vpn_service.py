@@ -1,3 +1,5 @@
+import json
+
 import app.services.vpn_service as vpn_service_module
 from app.services.vpn_service import VpnService
 
@@ -8,6 +10,22 @@ class FakeXuiRepository:
         self.bound_clients = []
         self.traffic_clients = []
         self.inbound_settings_clients = []
+        self.inbound = {
+            "port": 34889,
+            "stream_settings": json.dumps({
+                "network": "tcp",
+                "security": "reality",
+                "realitySettings": {
+                    "serverNames": ["www.apple.com"],
+                    "shortIds": ["abcd1234"],
+                    "settings": {
+                        "publicKey": "public-key",
+                        "fingerprint": "chrome",
+                        "spiderX": "/",
+                    },
+                },
+            }),
+        }
 
     def get_client_by_email(self, email: str):
         return self.clients_by_email.get(email)
@@ -56,6 +74,9 @@ class FakeXuiRepository:
 
     def add_client_to_inbound_settings(self, client_row) -> None:
         self.inbound_settings_clients.append(client_row)
+
+    def get_inbound_by_id(self, inbound_id: int):
+        return self.inbound
 
 
 class FakeLoggerService:
@@ -106,6 +127,32 @@ def test_build_sub_url_uses_configured_scheme(monkeypatch):
     assert service.build_sub_url("abc123") == "https://31.57.93.95:2096/sub/abc123"
 
 
+def test_build_vless_url_uses_inbound_settings():
+    repository = FakeXuiRepository()
+    service = FakeVpnServiceWithoutRestart(repository)
+    client = {
+        "email": "tg_123456",
+        "uuid": "11111111-1111-1111-1111-111111111111",
+        "flow": "xtls-rprx-vision",
+    }
+
+    url = service.build_vless_url(client)
+
+    assert url.startswith(
+        "vless://11111111-1111-1111-1111-111111111111@31.57.93.95:34889?"
+    )
+    assert "type=tcp" in url
+    assert "security=reality" in url
+    assert "encryption=none" in url
+    assert "flow=xtls-rprx-vision" in url
+    assert "pbk=public-key" in url
+    assert "fp=chrome" in url
+    assert "sni=www.apple.com" in url
+    assert "sid=abcd1234" in url
+    assert "spx=%2F" in url
+    assert url.endswith("#tg_123456")
+
+
 def test_create_new_client():
     repository = FakeXuiRepository()
     service = FakeVpnServiceWithoutRestart(repository)
@@ -135,6 +182,7 @@ def test_existing_client_is_not_duplicated():
     assert second_client["email"] == first_client["email"]
     assert second_client["uuid"] == first_client["uuid"]
     assert second_client["sub_id"] == first_client["sub_id"]
+    assert second_client["vless_url"].startswith("vless://")
     assert second_client["created"] is False
 
     assert len(repository.clients_by_email) == 1

@@ -10,7 +10,7 @@ from app.services.vpn_service import VpnService
 router = Router()
 
 
-def build_vpn_text(sub_url: str, is_created: bool) -> str:
+def build_vpn_text(sub_url: str, vless_url: str, is_created: bool) -> str:
     """
     Формирует текст с VPN-подпиской.
 
@@ -21,11 +21,13 @@ def build_vpn_text(sub_url: str, is_created: bool) -> str:
 
     return (
         f"{status_text}\n\n"
+        f"🔑 Прямая ссылка VPN для Happ:\n\n"
+        f"{vless_url}\n\n"
         f"🔗 Ссылка подписки:\n\n"
         f"{sub_url}\n\n"
         f"1. Установите приложение.\n"
-        f"2. Добавьте подписку по ссылке или QR-коду.\n"
-        f"3. Обновите подписку в приложении."
+        f"2. Добавьте прямую VPN-ссылку или QR-код.\n"
+        f"3. Если приложение поддерживает подписки, можно добавить ссылку подписки."
     )
 
 
@@ -33,7 +35,7 @@ def build_vpn_qr_caption() -> str:
     """
     Формирует подпись к QR-коду VPN-подписки.
     """
-    return "QR-код подписки"
+    return "QR-код прямой VPN-ссылки"
 
 
 async def send_vpn(
@@ -50,11 +52,13 @@ async def send_vpn(
 
     client = vpn_service.get_or_create_client(message.from_user.id)
     sub_url = vpn_service.build_sub_url(client["sub_id"])
-    qr = qr_service.make_qr(sub_url)
+    vless_url = client["vless_url"]
+    qr = qr_service.make_qr(vless_url)
 
     await message.answer(
         build_vpn_text(
             sub_url=sub_url,
+            vless_url=vless_url,
             is_created=client["created"],
         ),
         reply_markup=menu_service.get_keyboard_for_message(message),
